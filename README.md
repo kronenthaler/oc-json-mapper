@@ -26,7 +26,7 @@ Define the properties in your class:
 
 Assume you have the following JSON object:
 ```
-{"id":1, "name":"root object", "children": [{"name":"joe", "name":"jane"}] }
+{"id":1, "name":"root object", "children": [{"name":"joe"}, {"name":"jane"}] }
 ```
 
 In your code:
@@ -48,7 +48,7 @@ NSLog(@"Root.id: %d", root.id);
 // access the chain of properties
 NSLog(@"Childs: %@, %@", root.children[0].name, root.children[1].name);
 
-// get the JSON representation any object with properties
+// get the JSON representation any object with properties (KVC compliant)
 NSLog(@"Into JSON: %@", [root JSONString]);
 
 ```
