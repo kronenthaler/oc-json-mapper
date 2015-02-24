@@ -38,8 +38,11 @@
         
         id value = data[property.name];
         if([value isKindOfClass:[NSDictionary class]]){
-            //map as an object
-            [self setValue:[NSClassFromString(property.type) map:value] forKey:property.name];
+            Class class = NSClassFromString(property.type);
+            if([class isSubclassOfClass:[NSDictionary class]]) //treat as a dictionary.
+                [self setValue:value forKey:property.name];
+            else //map as an object
+                [self setValue:[class map:value] forKey:property.name];
         }else if([value isKindOfClass:[NSArray class]]){
             //see how to create the instances of the corresponding type.
             [self setValue:[NSClassFromString(property.subtype) map:value] forKey:property.name];
