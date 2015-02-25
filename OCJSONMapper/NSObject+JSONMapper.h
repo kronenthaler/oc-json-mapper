@@ -14,3 +14,11 @@
 -(NSString*) JSONString;
 
 @end
+
+@protocol JSONMapper <NSObject>
+@required
+-(NSString*) remapPropertyName:(NSString*)propertyName;
+@end
+
+@protocol NSString<NSObject>
+@end

@@ -33,10 +33,16 @@
 
 -(instancetype) mapToDictionary:(NSDictionary*)data{
     for(Property* property in [self getProperties]){
-        if(data[property.name] == nil) //property is not in the json, ignore it.
+        id value = nil;
+        if([self conformsToProtocol:@protocol(JSONMapper)]){
+            value = data[[((id<JSONMapper>)self) remapPropertyName:property.name]];
+        }else{
+            value = data[property.name];
+        }
+        
+        if(value == nil) //property is not in the json, ignore it.
             continue;
         
-        id value = data[property.name];
         if([value isKindOfClass:[NSDictionary class]]){
             Class class = NSClassFromString(property.type);
             if([class isSubclassOfClass:[NSDictionary class]]) //treat as a dictionary.
@@ -78,6 +84,8 @@
         
         for(int i=0;i<propertyCount;i++){
             objc_property_t prop = list[i];
+            if(strcmp("description", property_getName(prop)) == 0) //reserved property
+                continue;
             
             const char* type = property_getAttributes(prop);
             NSString* typeString = [NSString stringWithUTF8String:type];
