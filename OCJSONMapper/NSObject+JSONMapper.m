@@ -90,14 +90,15 @@
             const char* type = property_getAttributes(prop);
             NSString* typeString = [NSString stringWithUTF8String:type];
             NSArray* attributes = [typeString componentsSeparatedByString:@","];
-            NSString* typeAttribute = [attributes objectAtIndex:0];
+            NSString* typeAttribute = attributes[0];
             NSString* subTypeString=nil;
             
             if ([typeAttribute hasPrefix:@"T@"]) {
                 typeString = [typeAttribute substringWithRange:NSMakeRange(3, [typeAttribute length]-4)];
                 Class typeClass = NSClassFromString(typeString);
                 if(typeClass == nil){
-                    NSArray* tokens = [typeString componentsSeparatedByCharactersInSet:[NSCharacterSet characterSetWithCharactersInString:@"<>"]];
+                    NSCharacterSet* set = [NSCharacterSet characterSetWithCharactersInString:@"<>"];
+                    NSArray* tokens = [typeString componentsSeparatedByCharactersInSet:set];
 
                     typeString = tokens[0];
                     subTypeString = tokens[1];
@@ -136,17 +137,24 @@
     
     
     if([self isKindOfClass:[NSArray class]]){
-        NSMutableString* buffer = [NSMutableString string];
-        [buffer appendString:@"["];
-        for(id item in (NSArray*)self){
-            if(buffer.length > 1) [buffer appendString:@","];
-            [buffer appendString:[item JSONString]];
-        }
-        [buffer appendString:@"]"];
-        return buffer;
+        [self JSONStringFromArray];
     }
     
-    //else is an object
+    return [self JSONStringFromObject];
+}
+
+-(NSString*) JSONStringFromArray{
+    NSMutableString* buffer = [NSMutableString string];
+    [buffer appendString:@"["];
+    for(id item in (NSArray*)self){
+        if(buffer.length > 1) [buffer appendString:@","];
+        [buffer appendString:[item JSONString]];
+    }
+    [buffer appendString:@"]"];
+    return buffer;
+}
+
+-(NSString*) JSONStringFromObject{
     NSMutableString* buffer = [NSMutableString string];
     [buffer appendString:@"{"];
     for(Property* property in [self getProperties]){
