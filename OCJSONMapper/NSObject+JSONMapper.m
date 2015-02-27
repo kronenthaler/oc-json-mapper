@@ -136,9 +136,8 @@
         return [NSString stringWithFormat:@"\"%@\"",(NSString*)self];
     
     
-    if([self isKindOfClass:[NSArray class]]){
-        [self JSONStringFromArray];
-    }
+    if([self isKindOfClass:[NSArray class]])
+        return [self JSONStringFromArray];
     
     return [self JSONStringFromObject];
 }
