@@ -159,6 +159,7 @@
     for(Property* property in [self getProperties]){
         if(buffer.length > 1) [buffer appendString:@","];
         id value = [self valueForKey:property.name];
+        if(value == nil) value = [NSNull new];
         [buffer appendString:[NSString stringWithFormat:@"\"%@\": %@", property.name, [value JSONString]]];
     }
     [buffer appendString:@"}"];
