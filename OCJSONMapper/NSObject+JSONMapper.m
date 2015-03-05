@@ -77,7 +77,7 @@
 -(NSArray*) getProperties{
     NSMutableArray* properties = [NSMutableArray array];
     
-    Class currentClass=[self class];
+    Class currentClass = [self class];
     while (currentClass && currentClass != [NSObject class]) {
         unsigned int propertyCount;
         objc_property_t* list = class_copyPropertyList(currentClass, &propertyCount);
@@ -87,8 +87,7 @@
             if(strcmp("description", property_getName(prop)) == 0) //reserved property
                 continue;
             
-            const char* type = property_getAttributes(prop);
-            NSString* typeString = [NSString stringWithUTF8String:type];
+            NSString* typeString = [NSString stringWithUTF8String:property_getAttributes(prop)];
             NSArray* attributes = [typeString componentsSeparatedByString:@","];
             NSString* typeAttribute = attributes[0];
             NSString* subTypeString=nil;
