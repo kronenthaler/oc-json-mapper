@@ -83,30 +83,30 @@
        ([value isKindOfClass:[NSNumber class]] && [self isIntegral:property]) ||
        ([value isKindOfClass:[NSNumber class]] && [self isDecimal:property])) {
         [self setValue:value forKey:property.name];
-    }else{
-        // it's not null, and not a primitive type, it can accept null values
-        if(value != nil &&
-           [value isKindOfClass:[NSNull class]] &&
-           ![self isBoolean:property] &&
-           ![self isIntegral:property] &&
-           ![self isDecimal:property]){
-            
-            return YES;
-        }
-        
-        if(error != NULL)
-            *error = [NSError errorWithDomain:@"JSONMapper"
-                                         code:-500 userInfo:@{
-                                                              @"message":@"Property type doesn't match with the expected from the object.",
-                                                              @"class":[[self class] description],
-                                                              @"property":property.name,
-                                                              @"type":property.type,
-                                                              @"value":value,
-                                                              @"value-type":[[value class]description]}];
-        return NO;
+        return YES;
     }
     
-    return YES;
+    // it's not null, and not a primitive type, it can accept null values
+    if(value != nil &&
+       [value isKindOfClass:[NSNull class]] &&
+       ![self isBoolean:property] &&
+       ![self isIntegral:property] &&
+       ![self isDecimal:property]){
+        return YES;
+    }
+    
+    if(error != NULL)
+        *error = [NSError errorWithDomain:@"JSONMapper"
+                                     code:-500
+                                 userInfo:@{
+                                            @"message":@"Property type doesn't match with the expected from the object.",
+                                            @"class":[[self class] description],
+                                            @"property":property.name,
+                                            @"type":property.type,
+                                            @"value":value,
+                                            @"value-type":[[value class]description]}];
+    return NO;
+    
 }
 
 -(instancetype) mapToArray:(NSArray*)data error:(NSError**)error{
