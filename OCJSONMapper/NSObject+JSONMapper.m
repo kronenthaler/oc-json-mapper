@@ -19,19 +19,19 @@
 
 @implementation NSObject (JSONMapper)
 
-+(instancetype) map:(id)jsonObject{
-    return [[[self class] alloc] mapTo:jsonObject];
++(instancetype) map:(id)jsonObject error:(NSError**)error{
+    return [[[self class] alloc] mapTo:jsonObject error:error];
 }
 
--(instancetype) mapTo:(id)jsonObject{
+-(instancetype) mapTo:(id)jsonObject error:(NSError**)error{
     if([jsonObject isKindOfClass:[NSDictionary class]])
-        return [self mapToDictionary:jsonObject];
+        return [self mapToDictionary:jsonObject error:error];
     if([jsonObject isKindOfClass:[NSArray class]])
-        return [self mapToArray:jsonObject];
-    return [self mapToValue:jsonObject];
+        return [self mapToArray:jsonObject error:error];
+    return [self mapToValue:jsonObject error:error];
 }
 
--(instancetype) mapToDictionary:(NSDictionary*)data{
+-(instancetype) mapToDictionary:(NSDictionary*)data error:(NSError**)error{
     for(Property* property in [self getProperties]){
         id value = nil;
         if([self conformsToProtocol:@protocol(JSONMapper)]){
@@ -42,36 +42,100 @@
         
         if(value == nil) //property is not in the json, ignore it.
             continue;
-        
+
+        BOOL valid = NO;
         if([value isKindOfClass:[NSDictionary class]]){
             Class class = NSClassFromString(property.type);
             if([class isSubclassOfClass:[NSDictionary class]]) //treat as a dictionary.
-                [self setValue:value forKey:property.name];
+                valid = [self setProperty:property value:value forKey:property.name error:error];
             else //map as an object
-                [self setValue:[class map:value] forKey:property.name];
+                valid = [self setProperty:property
+                            value:[class map:value error:error]
+                           forKey:property.name
+                            error:error];
         }else if([value isKindOfClass:[NSArray class]]){
             //see how to create the instances of the corresponding type.
-            [self setValue:[NSClassFromString(property.subtype) map:value] forKey:property.name];
+            valid = [self setProperty:property
+                        value:[NSClassFromString(property.subtype) map:value error:error]
+                       forKey:property.name
+                        error:error];
         }else{
             //assign the value to the property.
-            [self setValue:value forKey:property.name];
+            valid = [self setProperty:property value:value forKey:property.name error:error];
         }
+        
+        if(!valid)
+            return nil;
     }
     
     return self;
 }
 
--(instancetype) mapToArray:(NSArray*)data{
+-(BOOL) setProperty:(Property*)property value:(id)value forKey:(NSString*)key error:(NSError**)error{
+    //there is an error being dragged from a previous call.
+    if(error != NULL && *error)
+        return NO;
+    
+    //check if the property type and value type are compatible, if not, give an error and return.
+    if(value == nil ||
+       [value isKindOfClass:NSClassFromString(property.type)] ||
+       ([value isKindOfClass:[@(YES) class]] && [self isBoolean:property]) ||
+       ([value isKindOfClass:[NSNumber class]] && [self isIntegral:property]) ||
+       ([value isKindOfClass:[NSNumber class]] && [self isDecimal:property])) {
+        [self setValue:value forKey:property.name];
+    }else{
+        // it's not null, and not a primitive type, it can accept null values
+        if(value != nil &&
+           [value isKindOfClass:[NSNull class]] &&
+           ![self isBoolean:property] &&
+           ![self isIntegral:property] &&
+           ![self isDecimal:property]){
+            
+            return YES;
+        }
+        
+        if(error != NULL)
+            *error = [NSError errorWithDomain:@"JSONMapper"
+                                         code:-500 userInfo:@{@"message":@"Property type doesn't match with the expected from the object."}];
+        return NO;
+    }
+    
+    return YES;
+}
+
+-(instancetype) mapToArray:(NSArray*)data error:(NSError**)error{
     NSMutableArray* result = [NSMutableArray array];
     for(id item in data){
-        [result addObject:[[self class] map:item]];
+        [result addObject:[[self class] map:item error:error]];
     }
     return result;
 }
 
--(instancetype) mapToValue:(id)data{
+-(instancetype) mapToValue:(id)data error:(NSError**)error{
     if(data == nil) return [NSNull alloc];
     return data;
+}
+
+-(BOOL) isBoolean:(Property*)property{
+    return [property.type hasPrefix:@"TB"];
+}
+
+-(BOOL) isDecimal:(Property*)property{
+    return
+        [property.type hasPrefix:@"Tf"] ||
+        [property.type hasPrefix:@"Td"];
+}
+
+-(BOOL) isIntegral:(Property*)property{
+    return
+        [property.type hasPrefix:@"Ti"] ||
+        [property.type hasPrefix:@"Ts"] ||
+        [property.type hasPrefix:@"Tl"] ||
+        [property.type hasPrefix:@"Tq"] ||
+        [property.type hasPrefix:@"TI"] ||
+        [property.type hasPrefix:@"TS"] ||
+        [property.type hasPrefix:@"TL"] ||
+        [property.type hasPrefix:@"TQ"];
 }
 
 -(NSArray*) getProperties{
@@ -90,7 +154,7 @@
             NSString* typeString = [NSString stringWithUTF8String:property_getAttributes(prop)];
             NSArray* attributes = [typeString componentsSeparatedByString:@","];
             NSString* typeAttribute = attributes[0];
-            NSString* subTypeString=nil;
+            NSString* subTypeString = @"NSObject";
             
             if ([typeAttribute hasPrefix:@"T@"]) {
                 typeString = [typeAttribute substringWithRange:NSMakeRange(3, [typeAttribute length]-4)];

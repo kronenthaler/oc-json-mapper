@@ -10,7 +10,7 @@
 
 @interface NSObject (JSONMapper)
 
-+(instancetype) map:(id)jsonObject;
++(instancetype) map:(id)jsonObject error:(NSError**)error;
 -(NSString*) JSONString;
 
 @end
