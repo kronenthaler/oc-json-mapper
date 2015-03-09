@@ -78,7 +78,7 @@
     
     //check if the property type and value type are compatible, if not, give an error and return.
     if(value == nil ||
-       [value isKindOfClass:NSClassFromString(property.type)] ||
+       (NSClassFromString(property.type) != nil && [value isKindOfClass:NSClassFromString(property.type)]) ||
        ([value isKindOfClass:[@(YES) class]] && [self isBoolean:property]) ||
        ([value isKindOfClass:[NSNumber class]] && [self isIntegral:property]) ||
        ([value isKindOfClass:[NSNumber class]] && [self isDecimal:property])) {
@@ -96,7 +96,13 @@
         
         if(error != NULL)
             *error = [NSError errorWithDomain:@"JSONMapper"
-                                         code:-500 userInfo:@{@"message":@"Property type doesn't match with the expected from the object."}];
+                                         code:-500 userInfo:@{
+                                                              @"message":@"Property type doesn't match with the expected from the object.",
+                                                              @"class":[[self class] description],
+                                                              @"property":property.name,
+                                                              @"type":property.type,
+                                                              @"value":value,
+                                                              @"value-type":[[value class]description]}];
         return NO;
     }
     
@@ -106,7 +112,10 @@
 -(instancetype) mapToArray:(NSArray*)data error:(NSError**)error{
     NSMutableArray* result = [NSMutableArray array];
     for(id item in data){
-        [result addObject:[[self class] map:item error:error]];
+        id value = [[self class] map:item error:error];
+        if(error != NULL && *error)
+            return nil;
+        [result addObject:value];
     }
     return result;
 }
@@ -117,7 +126,9 @@
 }
 
 -(BOOL) isBoolean:(Property*)property{
-    return [property.type hasPrefix:@"TB"];
+    return
+        [property.type hasPrefix:@"TB"] ||
+        [property.type hasPrefix:@"Tc"];
 }
 
 -(BOOL) isDecimal:(Property*)property{
