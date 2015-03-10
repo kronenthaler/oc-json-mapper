@@ -95,18 +95,20 @@
         return YES;
     }
     
-    if(error != NULL)
-        *error = [NSError errorWithDomain:@"JSONMapper"
+    if(error != NULL){
+        NSDictionary* info =@{
+                              @"NSDebugDescription":@"Property type doesn't match with the expected from the object.",
+                              @"class":[[self class] description],
+                              @"property":property.name,
+                              @"type":property.type,
+                              @"value":value,
+                              @"value-type":[[value class]description]};
+       *error = [NSError errorWithDomain:@"JSONMapper"
                                      code:-500
-                                 userInfo:@{
-                                            @"message":@"Property type doesn't match with the expected from the object.",
-                                            @"class":[[self class] description],
-                                            @"property":property.name,
-                                            @"type":property.type,
-                                            @"value":value,
-                                            @"value-type":[[value class]description]}];
+                                 userInfo:info];
+    }
+
     return NO;
-    
 }
 
 -(instancetype) mapToArray:(NSArray*)data error:(NSError**)error{
