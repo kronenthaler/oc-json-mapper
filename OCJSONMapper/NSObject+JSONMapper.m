@@ -151,6 +151,17 @@
         [property.type hasPrefix:@"TQ"];
 }
 
+-(BOOL) isReservedProperty:(objc_property_t)prop{
+    unsigned int propertyObjCount;
+    objc_property_t* objList = class_copyPropertyList([NSObject class], &propertyObjCount);
+    for(int j=0;j<propertyObjCount;j++){
+        if(strcmp(property_getName(prop), property_getName(objList[j]))==0){
+            return YES;
+        }
+    }
+    return NO;
+}
+
 -(NSArray*) getProperties{
     NSMutableArray* properties = [NSMutableArray array];
     
@@ -161,7 +172,8 @@
         
         for(int i=0;i<propertyCount;i++){
             objc_property_t prop = list[i];
-            if(strcmp("description", property_getName(prop)) == 0) //reserved property
+            
+            if([self isReservedProperty:prop]) //reserved property
                 continue;
             
             NSString* typeString = [NSString stringWithUTF8String:property_getAttributes(prop)];
