@@ -32,7 +32,7 @@
 }
 
 -(instancetype) mapToDictionary:(NSDictionary*)data error:(NSError**)error{
-    for(Property* property in [self getProperties]){
+    for(Property* property in [self properties]){
         id value = nil;
         if([self conformsToProtocol:@protocol(JSONMapper)]){
             value = data[[((id<JSONMapper>)self) remapPropertyName:property.name]];
@@ -162,7 +162,7 @@
     return NO;
 }
 
--(NSArray*) getProperties{
+-(NSArray*) properties{
     NSMutableArray* properties = [NSMutableArray array];
     
     Class currentClass = [self class];
@@ -244,7 +244,7 @@
 -(NSString*) JSONStringFromObject{
     NSMutableString* buffer = [NSMutableString string];
     [buffer appendString:@"{"];
-    for(Property* property in [self getProperties]){
+    for(Property* property in [self properties]){
         if(buffer.length > 1) [buffer appendString:@","];
         id value = [self valueForKey:property.name];
         if(value == nil) value = [NSNull new];
