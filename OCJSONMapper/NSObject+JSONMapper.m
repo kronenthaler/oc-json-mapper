@@ -153,12 +153,21 @@
 
 -(BOOL) isReservedProperty:(objc_property_t)prop{
     unsigned int propertyObjCount;
+    const char* propName = property_getName(prop);
     objc_property_t* objList = class_copyPropertyList([NSObject class], &propertyObjCount);
     for(int j=0;j<propertyObjCount;j++){
-        if(strcmp(property_getName(prop), property_getName(objList[j]))==0){
+        if(strcmp(propName, property_getName(objList[j]))==0){
             return YES;
         }
     }
+    
+    NSArray* reserved = @[@"hash", @"description", @"debugDescription", @"superclass"];
+    for(NSString* keyword in reserved){
+        if(strcmp(propName, keyword.UTF8String)==0){
+            return YES;
+        }
+    }
+    
     return NO;
 }
 
