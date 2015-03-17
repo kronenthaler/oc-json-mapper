@@ -77,7 +77,8 @@
     //check if the property type and value type are compatible, if not, give an error and return.
     if(value == nil ||
        ([self isValidArray:property value:value]) ||
-       (![value isKindOfClass:[NSArray class]] && NSClassFromString(property.type) != nil && [value isKindOfClass:NSClassFromString(property.type)]) ||
+       (![value isKindOfClass:[NSArray class]] && NSClassFromString(property.type) != nil &&
+        [value isKindOfClass:NSClassFromString(property.type)]) ||
        ([value isKindOfClass:[@(YES) class]] && [self isBoolean:property]) ||
        ([value isKindOfClass:[NSNumber class]] && [self isIntegral:property]) ||
        ([value isKindOfClass:[NSNumber class]] && [self isDecimal:property])) {
