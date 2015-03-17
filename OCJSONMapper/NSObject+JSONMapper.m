@@ -47,21 +47,19 @@
         if([value isKindOfClass:[NSDictionary class]]){
             Class class = NSClassFromString(property.type);
             if([class isSubclassOfClass:[NSDictionary class]]) //treat as a dictionary.
-                valid = [self setProperty:property value:value forKey:property.name error:error];
+                valid = [self setProperty:property value:value error:error];
             else //map as an object
                 valid = [self setProperty:property
                             value:[class map:value error:error]
-                           forKey:property.name
                             error:error];
         }else if([value isKindOfClass:[NSArray class]]){
             //see how to create the instances of the corresponding type.
             valid = [self setProperty:property
                         value:[NSClassFromString(property.subtype) map:value error:error]
-                       forKey:property.name
                         error:error];
         }else{
             //assign the value to the property.
-            valid = [self setProperty:property value:value forKey:property.name error:error];
+            valid = [self setProperty:property value:value error:error];
         }
         
         if(!valid)
@@ -71,14 +69,15 @@
     return self;
 }
 
--(BOOL) setProperty:(Property*)property value:(id)value forKey:(NSString*)key error:(NSError**)error{
+-(BOOL) setProperty:(Property*)property value:(id)value error:(NSError**)error{
     //there is an error being dragged from a previous call.
     if(error != NULL && *error)
         return NO;
     
     //check if the property type and value type are compatible, if not, give an error and return.
     if(value == nil ||
-       (NSClassFromString(property.type) != nil && [value isKindOfClass:NSClassFromString(property.type)]) ||
+       ([self isValidArray:property value:value]) ||
+       (![value isKindOfClass:[NSArray class]] && NSClassFromString(property.type) != nil && [value isKindOfClass:NSClassFromString(property.type)]) ||
        ([value isKindOfClass:[@(YES) class]] && [self isBoolean:property]) ||
        ([value isKindOfClass:[NSNumber class]] && [self isIntegral:property]) ||
        ([value isKindOfClass:[NSNumber class]] && [self isDecimal:property])) {
@@ -125,6 +124,27 @@
 -(instancetype) mapToValue:(id)data error:(NSError**)error{
     if(data == nil) return [NSNull alloc];
     return data;
+}
+
+-(BOOL) isValidArray:(Property*)property value:(id)value{
+    //is not an array
+    if(!([value isKindOfClass:[NSArray class]] && [value isKindOfClass:NSClassFromString(property.type)]))
+        return NO;
+    
+    //there is no subtype specified
+    if(property.subtype == nil)
+        return YES;
+    
+    //the array is empty => no inconsistencies
+    if(((NSArray*)value).count == 0)
+        return YES;
+    
+    //all elements are consistent
+    for(id item in ((NSArray*)value))
+        if(![item isKindOfClass:NSClassFromString(property.subtype)])
+            return NO;
+    
+    return YES;
 }
 
 -(BOOL) isBoolean:(Property*)property{
