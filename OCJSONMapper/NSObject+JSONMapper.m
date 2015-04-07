@@ -278,7 +278,12 @@
         if(buffer.length > 1) [buffer appendString:@","];
         id value = [self valueForKey:property.name];
         if(value == nil) value = [NSNull new];
-        [buffer appendString:[NSString stringWithFormat:@"\"%@\": %@", property.name, [value JSONString]]];
+        
+        NSString* propertyName = property.name;
+        if([self conformsToProtocol:@protocol(JSONMapper)])
+            propertyName = [((id<JSONMapper>)self) remapPropertyName:propertyName];
+        
+        [buffer appendString:[NSString stringWithFormat:@"\"%@\": %@", propertyName, [value JSONString]]];
     }
     [buffer appendString:@"}"];
     return buffer;
