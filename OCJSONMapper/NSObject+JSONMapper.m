@@ -162,6 +162,7 @@
     objc_property_t* objList = class_copyPropertyList([NSObject class], &propertyObjCount);
     for (int j = 0; j < propertyObjCount; j++) {
         if (strcmp(propName, property_getName(objList[j])) == 0) {
+            free(objList);
             return YES;
         }
     }
@@ -169,10 +170,12 @@
     NSArray* reserved = @[ @"hash", @"description", @"debugDescription", @"superclass" ];
     for (NSString* keyword in reserved) {
         if (strcmp(propName, keyword.UTF8String) == 0) {
+            free(objList);
             return YES;
         }
     }
 
+    free(objList);
     return NO;
 }
 
