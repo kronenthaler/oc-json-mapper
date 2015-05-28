@@ -32,7 +32,12 @@
 }
 
 - (instancetype)mapToDictionary:(NSDictionary*)data error:(NSError**)error {
-    for (Property* property in [self properties]) {
+    NSArray* properties = [self properties];
+
+    if (properties.count == 0)
+        return data;
+
+    for (Property* property in properties) {
         id value = nil;
         if ([self conformsToProtocol:@protocol(JSONMapper)]) {
             value = data[[((id<JSONMapper>)self)remapPropertyName:property.name]];
