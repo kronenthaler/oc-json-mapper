@@ -20,7 +20,11 @@
 @implementation NSObject (JSONMapper)
 
 + (instancetype)map:(id)jsonObject error:(NSError**)error {
-    return [[[self class] alloc] mapTo:jsonObject error:error];
+    id instance = [[self class] alloc];
+    if ([instance respondsToSelector:@selector(initForMap)])
+        instance = [instance initForMap];
+
+    return [instance mapTo:jsonObject error:error];
 }
 
 - (instancetype)mapTo:(id)jsonObject error:(NSError**)error {
@@ -40,7 +44,7 @@
     for (Property* property in properties) {
         id value = nil;
         if ([self conformsToProtocol:@protocol(JSONMapper)]) {
-            value = data[[((id<JSONMapper>)self)remapPropertyName:property.name]];
+            value = data[[((id<JSONMapper>)self) remapPropertyName:property.name]];
         } else {
             value = data[property.name];
         }
@@ -140,7 +144,7 @@
         return YES;
 
     // all elements are consistent
-    for (id item in((NSArray*)value))
+    for (id item in ((NSArray*)value))
         if (![item isKindOfClass:NSClassFromString(property.subtype)])
             return NO;
 
@@ -254,7 +258,7 @@
 - (NSString*)JSONStringFromArray {
     NSMutableString* buffer = [NSMutableString string];
     [buffer appendString:@"["];
-    for (id item in(NSArray*)self) {
+    for (id item in (NSArray*)self) {
         if (buffer.length > 1)
             [buffer appendString:@","];
         [buffer appendString:[item JSONString]];
@@ -275,7 +279,7 @@
 
         NSString* propertyName = property.name;
         if ([self conformsToProtocol:@protocol(JSONMapper)])
-            propertyName = [((id<JSONMapper>)self)remapPropertyName:propertyName];
+            propertyName = [((id<JSONMapper>)self) remapPropertyName:propertyName];
 
         [buffer appendString:[NSString stringWithFormat:@"\"%@\": %@", propertyName, [value JSONString]]];
     }

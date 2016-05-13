@@ -10,15 +10,17 @@
 
 @interface NSObject (JSONMapper)
 
-+(instancetype) map:(id)jsonObject error:(NSError**)error;
--(NSString*) JSONString;
++ (instancetype)map:(id)jsonObject error:(NSError**)error;
+- (NSString*)JSONString;
 
 @end
 
 @protocol JSONMapper <NSObject>
 @required
--(NSString*) remapPropertyName:(NSString*)propertyName;
+- (NSString*)remapPropertyName:(NSString*)propertyName;
+@optional
+- (instancetype)initForMap;
 @end
 
-@protocol NSString<NSObject>
+@protocol NSString <NSObject>
 @end
