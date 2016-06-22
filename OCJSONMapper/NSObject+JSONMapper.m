@@ -239,13 +239,6 @@
     if (self == nil || [self isKindOfClass:[NSNull class]])
         return @"null";
 
-    if ([self isKindOfClass:[NSNumber class]]) {
-        if ([self isKindOfClass:[@(YES) class]])
-            return [((NSNumber*)self)boolValue] ? @"true" : @"false";
-
-        return [((NSNumber*)self)stringValue];
-    }
-
     if ([self isKindOfClass:[NSString class]])
         return [NSString stringWithFormat:@"\"%@\"", (NSString*)self];
 
@@ -253,6 +246,16 @@
         return [self JSONStringFromArray];
 
     return [self JSONStringFromObject];
+}
+
+- (NSString*)JSONString:(Property*)property {
+    if ([self isBoolean:property]) {
+        return [((NSNumber*)self)boolValue] ? @"true" : @"false";
+    } else if ([self isKindOfClass:[NSNumber class]] && ([self isIntegral:property] || [self isDecimal:property])) {
+        return [((NSNumber*)self)stringValue];
+    }
+
+    return [self JSONString];
 }
 
 - (NSString*)JSONStringFromArray {
@@ -281,7 +284,7 @@
         if ([self conformsToProtocol:@protocol(JSONMapper)])
             propertyName = [((id<JSONMapper>)self) remapPropertyName:propertyName];
 
-        [buffer appendString:[NSString stringWithFormat:@"\"%@\": %@", propertyName, [value JSONString]]];
+        [buffer appendString:[NSString stringWithFormat:@"\"%@\": %@", propertyName, [value JSONString:property]]];
     }
     [buffer appendString:@"}"];
     return buffer;
