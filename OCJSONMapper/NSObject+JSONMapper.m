@@ -88,7 +88,18 @@
         ([value isKindOfClass:[@(YES) class]] && [self isBoolean:property]) ||
         ([value isKindOfClass:[NSNumber class]] && [self isIntegral:property]) ||
         ([value isKindOfClass:[NSNumber class]] && [self isDecimal:property])) {
+        // for special cases, a dictionary can contain complex objects under it
+        if (![property.subtype isEqualToString:@"NSObject"] && [value isKindOfClass:NSDictionary.class]) {
+            // create a dictionary
+            NSMutableDictionary* dict = [NSMutableDictionary dictionary];
+            for (NSString* key in [value allKeys]) {
+                dict[key] = [NSClassFromString(property.subtype) map:value[key] error:error];
+            }
+
+            value = [NSClassFromString(property.type) dictionaryWithDictionary:dict]; // make it immutable
+        }
         [self setValue:value forKey:property.name];
+
         return YES;
     }
 
