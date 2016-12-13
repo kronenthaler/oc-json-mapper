@@ -245,6 +245,9 @@
     if ([self isKindOfClass:[NSArray class]])
         return [self JSONStringFromArray];
 
+    if ([self isKindOfClass:[NSDictionary class]])
+        return [self JSONStringFromDictionary];
+
     return [self JSONStringFromObject];
 }
 
@@ -267,6 +270,28 @@
         [buffer appendString:[item JSONString]];
     }
     [buffer appendString:@"]"];
+    return buffer;
+}
+
+- (NSString*)JSONStringFromDictionary {
+    NSDictionary* dic = (NSDictionary*)self;
+    NSMutableString* buffer = [NSMutableString string];
+    [buffer appendString:@"{"];
+    for (NSString* key in [dic allKeys]) {
+        NSString* propertyName = key;
+        if (buffer.length > 1)
+            [buffer appendString:@","];
+        id value = dic[propertyName];
+        if (value == nil)
+            value = [NSNull new];
+
+        if ([self conformsToProtocol:@protocol(JSONMapper)])
+            propertyName = [((id<JSONMapper>)self) remapPropertyName:propertyName];
+
+        [buffer appendString:[NSString stringWithFormat:@"\"%@\": %@", propertyName, [value JSONString]]];
+    }
+
+    [buffer appendString:@"}"];
     return buffer;
 }
 
