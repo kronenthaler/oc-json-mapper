@@ -20,7 +20,7 @@
 @implementation NSObject (JSONMapper)
 
 + (instancetype)map:(id)jsonObject error:(NSError**)error {
-    id instance = [[self class] alloc];
+    id instance = [self.class alloc];
     if ([instance respondsToSelector:@selector(initForMap)])
         instance = [instance initForMap];
 
@@ -28,9 +28,9 @@
 }
 
 - (instancetype)mapTo:(id)jsonObject error:(NSError**)error {
-    if ([jsonObject isKindOfClass:[NSDictionary class]])
+    if ([jsonObject isKindOfClass:NSDictionary.class])
         return [self mapToDictionary:jsonObject error:error];
-    if ([jsonObject isKindOfClass:[NSArray class]])
+    if ([jsonObject isKindOfClass:NSArray.class])
         return [self mapToArray:jsonObject error:error];
     return [self mapToValue:jsonObject error:error];
 }
@@ -53,13 +53,13 @@
             continue;
 
         BOOL valid = NO;
-        if ([value isKindOfClass:[NSDictionary class]]) {
+        if ([value isKindOfClass:NSDictionary.class]) {
             Class class = NSClassFromString(property.type);
-            if ([class isSubclassOfClass:[NSDictionary class]]) // treat as a dictionary.
+            if ([class isSubclassOfClass:NSDictionary.class]) // treat as a dictionary.
                 valid = [self setProperty:property value:value error:error];
             else // map as an object
                 valid = [self setProperty:property value:[class map:value error:error] error:error];
-        } else if ([value isKindOfClass:[NSArray class]]) {
+        } else if ([value isKindOfClass:NSArray.class]) {
             // see how to create the instances of the corresponding type.
             valid = [self setProperty:property
                                 value:[NSClassFromString(property.subtype) map:value error:error]
@@ -83,11 +83,11 @@
 
     // check if the property type and value type are compatible, if not, give an error and return.
     if (value == nil || ([self isValidArray:property value:value]) ||
-        (![value isKindOfClass:[NSArray class]] && NSClassFromString(property.type) != nil &&
+        (![value isKindOfClass:NSArray.class] && NSClassFromString(property.type) != nil &&
          [value isKindOfClass:NSClassFromString(property.type)]) ||
-        ([value isKindOfClass:[@(YES) class]] && [self isBoolean:property]) ||
-        ([value isKindOfClass:[NSNumber class]] && [self isIntegral:property]) ||
-        ([value isKindOfClass:[NSNumber class]] && [self isDecimal:property])) {
+        ([value isKindOfClass:@(YES).class] && [self isBoolean:property]) ||
+        ([value isKindOfClass:NSNumber.class] && [self isIntegral:property]) ||
+        ([value isKindOfClass:NSNumber.class] && [self isDecimal:property])) {
         // for special cases, a dictionary can contain complex objects under it
         if (![property.subtype isEqualToString:@"NSObject"] && [value isKindOfClass:NSDictionary.class]) {
             // create a dictionary
@@ -98,13 +98,14 @@
 
             value = [NSClassFromString(property.type) dictionaryWithDictionary:dict]; // make it immutable
         }
+
         [self setValue:value forKey:property.name];
 
         return YES;
     }
 
     // it's not null, and not a primitive type, it can accept null values
-    if (value != nil && [value isKindOfClass:[NSNull class]] && ![self isBoolean:property] &&
+    if (value != nil && [value isKindOfClass:NSNull.class] && ![self isBoolean:property] &&
         ![self isIntegral:property] && ![self isDecimal:property]) {
         return YES;
     }
@@ -112,7 +113,7 @@
     if (error != NULL) {
         NSDictionary* info = @{
             @"NSDebugDescription" : @"Property type doesn't match with the expected from the object.",
-            @"class" : [[self class] description],
+            @"class" : [self.class description],
             @"property" : property.name,
             @"type" : property.type,
             @"value" : value,
@@ -127,7 +128,7 @@
 - (instancetype)mapToArray:(NSArray*)data error:(NSError**)error {
     NSMutableArray* result = [NSMutableArray array];
     for (id item in data) {
-        id value = [[self class] map:item error:error];
+        id value = [self.class map:item error:error];
         if (error != NULL && *error)
             return nil;
         [result addObject:value];
@@ -143,7 +144,7 @@
 
 - (BOOL)isValidArray:(Property*)property value:(id)value {
     // is not an array
-    if (!([value isKindOfClass:[NSArray class]] && [value isKindOfClass:NSClassFromString(property.type)]))
+    if (!([value isKindOfClass:NSArray.class] && [value isKindOfClass:NSClassFromString(property.type)]))
         return NO;
 
     // there is no subtype specified
@@ -179,7 +180,7 @@
 - (BOOL)isReservedProperty:(objc_property_t)prop {
     unsigned int propertyObjCount;
     const char* propName = property_getName(prop);
-    objc_property_t* objList = class_copyPropertyList([NSObject class], &propertyObjCount);
+    objc_property_t* objList = class_copyPropertyList(NSObject.class, &propertyObjCount);
     for (int j = 0; j < propertyObjCount; j++) {
         if (strcmp(propName, property_getName(objList[j])) == 0) {
             free(objList);
@@ -202,8 +203,8 @@
 - (NSArray*)properties {
     NSMutableArray* properties = [NSMutableArray array];
 
-    Class currentClass = [self class];
-    while (currentClass && currentClass != [NSObject class]) {
+    Class currentClass = self.class;
+    while (currentClass && currentClass != NSObject.class) {
         unsigned int propertyCount;
         objc_property_t* list = class_copyPropertyList(currentClass, &propertyCount);
 
@@ -213,13 +214,13 @@
             if ([self isReservedProperty:prop]) // reserved property
                 continue;
 
-            NSString* typeString = [NSString stringWithUTF8String:property_getAttributes(prop)];
+            NSString* typeString = @(property_getAttributes(prop));
             NSArray* attributes = [typeString componentsSeparatedByString:@","];
             NSString* typeAttribute = attributes[0];
             NSString* subTypeString = @"NSObject";
 
             if ([typeAttribute hasPrefix:@"T@"]) {
-                typeString = [typeAttribute substringWithRange:NSMakeRange(3, [typeAttribute length] - 4)];
+                typeString = [typeAttribute substringWithRange:NSMakeRange(3, typeAttribute.length - 4)];
                 Class typeClass = NSClassFromString(typeString);
                 if (typeClass == nil) {
                     NSCharacterSet* set = [NSCharacterSet characterSetWithCharactersInString:@"<>"];
@@ -231,7 +232,7 @@
             }
 
             Property* property = [[Property alloc] init];
-            property.name = [NSString stringWithCString:property_getName(prop) encoding:NSUTF8StringEncoding];
+            property.name = @(property_getName(prop));
             property.type = typeString;
             property.subtype = subTypeString;
             [properties addObject:property];
@@ -247,13 +248,13 @@
 }
 
 - (NSString*)JSONString {
-    if (self == nil || [self isKindOfClass:[NSNull class]])
+    if (self == nil || [self isKindOfClass:NSNull.class])
         return @"null";
 
-    if ([self isKindOfClass:[NSString class]])
+    if ([self isKindOfClass:NSString.class])
         return [NSString stringWithFormat:@"\"%@\"", (NSString*)self];
 
-    if ([self isKindOfClass:[NSArray class]])
+    if ([self isKindOfClass:NSArray.class])
         return [self JSONStringFromArray];
 
     if ([self isKindOfClass:[NSDictionary class]])
@@ -264,9 +265,9 @@
 
 - (NSString*)JSONString:(Property*)property {
     if ([self isBoolean:property]) {
-        return [((NSNumber*)self)boolValue] ? @"true" : @"false";
-    } else if ([self isKindOfClass:[NSNumber class]] && ([self isIntegral:property] || [self isDecimal:property])) {
-        return [((NSNumber*)self)stringValue];
+        return ((NSNumber*)self).boolValue ? @"true" : @"false";
+    } else if ([self isKindOfClass:NSNumber.class] && ([self isIntegral:property] || [self isDecimal:property])) {
+        return ((NSNumber*)self).stringValue;
     }
 
     return [self JSONString];
@@ -288,7 +289,7 @@
     NSDictionary* dic = (NSDictionary*)self;
     NSMutableString* buffer = [NSMutableString string];
     [buffer appendString:@"{"];
-    for (NSString* key in [dic allKeys]) {
+    for (NSString* key in dic.allKeys) {
         NSString* propertyName = key;
         if (buffer.length > 1)
             [buffer appendString:@","];
