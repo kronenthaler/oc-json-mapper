@@ -20,14 +20,6 @@
 @implementation NSObject (JSONMapper)
 
 + (instancetype)map:(id)jsonObject error:(NSError**)error {
-    id instance = [self.class alloc];
-    if ([instance respondsToSelector:@selector(initForMap)])
-        instance = [instance initForMap];
-
-    return [instance mapTo:jsonObject error:error];
-}
-
-- (instancetype)mapTo:(id)jsonObject error:(NSError**)error {
     if ([jsonObject isKindOfClass:NSDictionary.class])
         return [self mapToDictionary:jsonObject error:error];
     if ([jsonObject isKindOfClass:NSArray.class])
@@ -35,16 +27,20 @@
     return [self mapToValue:jsonObject error:error];
 }
 
-- (instancetype)mapToDictionary:(NSDictionary*)data error:(NSError**)error {
-    NSArray* properties = [self properties];
++ (instancetype)mapToDictionary:(NSDictionary*)data error:(NSError**)error {
+    // instantiate the object only here.
+    NSObject* instance = [self.class alloc];
+    if ([instance respondsToSelector:@selector(initForMap)])
+        instance = [((id<JSONMapper>)instance) initForMap];
 
+    NSArray* properties = [instance properties];
     if (properties.count == 0)
         return data;
 
     for (Property* property in properties) {
         id value = nil;
         if ([self conformsToProtocol:@protocol(JSONMapper)]) {
-            value = data[[((id<JSONMapper>)self) remapPropertyName:property.name]];
+            value = data[[((id<JSONMapper>)instance) remapPropertyName:property.name]];
         } else {
             value = data[property.name];
         }
@@ -56,24 +52,24 @@
         if ([value isKindOfClass:NSDictionary.class]) {
             Class class = NSClassFromString(property.type);
             if ([class isSubclassOfClass:NSDictionary.class]) // treat as a dictionary.
-                valid = [self setProperty:property value:value error:error];
+                valid = [instance setProperty:property value:value error:error];
             else // map as an object
-                valid = [self setProperty:property value:[class map:value error:error] error:error];
+                valid = [instance setProperty:property value:[class map:value error:error] error:error];
         } else if ([value isKindOfClass:NSArray.class]) {
             // see how to create the instances of the corresponding type.
-            valid = [self setProperty:property
+            valid = [instance setProperty:property
                                 value:[NSClassFromString(property.subtype) map:value error:error]
                                 error:error];
         } else {
             // assign the value to the property.
-            valid = [self setProperty:property value:value error:error];
+            valid = [instance setProperty:property value:value error:error];
         }
 
         if (!valid)
             return nil;
     }
 
-    return self;
+    return instance;
 }
 
 - (BOOL)setProperty:(Property*)property value:(id)value error:(NSError**)error {
@@ -113,11 +109,11 @@
     if (error != NULL) {
         NSDictionary* info = @{
             @"NSDebugDescription" : @"Property type doesn't match with the expected from the object.",
-            @"class" : [self.class description],
+            @"class" : self.class.description,
             @"property" : property.name,
             @"type" : property.type,
             @"value" : value,
-            @"value-type" : [[value class] description]
+            @"value-type" : [value class].description
         };
         *error = [NSError errorWithDomain:@"JSONMapper" code:-500 userInfo:info];
     }
@@ -125,7 +121,7 @@
     return NO;
 }
 
-- (instancetype)mapToArray:(NSArray*)data error:(NSError**)error {
++ (instancetype)mapToArray:(NSArray*)data error:(NSError**)error {
     NSMutableArray* result = [NSMutableArray array];
     for (id item in data) {
         id value = [self.class map:item error:error];
@@ -136,9 +132,9 @@
     return result;
 }
 
-- (instancetype)mapToValue:(id)data error:(NSError**)error {
++ (instancetype)mapToValue:(id)data error:(NSError**)error {
     if (data == nil)
-        return [NSNull alloc];
+        return [NSNull new];
     return data;
 }
 
