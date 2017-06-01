@@ -29,9 +29,11 @@
 
 + (instancetype)mapToDictionary:(NSDictionary*)data error:(NSError**)error {
     // instantiate the object only here.
-    NSObject* instance = [self.class alloc];
+    NSObject* instance = [self alloc];
     if ([instance respondsToSelector:@selector(initForMap)])
         instance = [((id<JSONMapper>)instance) initForMap];
+    else
+        instance = [instance init];
 
     NSArray* properties = [instance properties];
     if (properties.count == 0)
@@ -124,7 +126,7 @@
 + (instancetype)mapToArray:(NSArray*)data error:(NSError**)error {
     NSMutableArray* result = [NSMutableArray array];
     for (id item in data) {
-        id value = [self.class map:item error:error];
+        id value = [self map:item error:error];
         if (error != NULL && *error)
             return nil;
         [result addObject:value];
