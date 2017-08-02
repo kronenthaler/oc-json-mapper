@@ -264,7 +264,7 @@
 - (NSString*)JSONString:(Property*)property {
     if ([self isBoolean:property]) {
         return ((NSNumber*)self).boolValue ? @"true" : @"false";
-    } else if ([self isKindOfClass:NSNumber.class] && ([self isIntegral:property] || [self isDecimal:property])) {
+    } else if ([self isKindOfClass:NSNumber.class]) {
         return ((NSNumber*)self).stringValue;
     }
 
