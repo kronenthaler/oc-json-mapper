@@ -250,7 +250,8 @@
         return @"null";
 
     if ([self isKindOfClass:NSString.class])
-        return [NSString stringWithFormat:@"\"%@\"", (NSString*)self];
+        return [NSString stringWithFormat:@"\"%@\"",
+                [(NSString*)self stringByReplacingOccurrencesOfString:@"\"" withString:@"\\\""]];
 
     if ([self isKindOfClass:NSArray.class])
         return [self JSONStringFromArray];
