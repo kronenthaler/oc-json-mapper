@@ -200,6 +200,10 @@
 
 - (NSArray*)properties {
     NSMutableArray* properties = [NSMutableArray array];
+    NSArray* skipProperties = @[];
+    if ([self respondsToSelector:@selector(skipProperties)]){
+        skipProperties = [((id<JSONMapper>)self) skipProperties];
+    }
 
     Class currentClass = self.class;
     while (currentClass && currentClass != NSObject.class) {
@@ -209,7 +213,8 @@
         for (int i = 0; i < propertyCount; i++) {
             objc_property_t prop = list[i];
 
-            if ([self isReservedProperty:prop]) // reserved property
+            if ([skipProperties containsObject:[[NSString alloc] initWithUTF8String:property_getName(prop)]] ||
+                [self isReservedProperty:prop]) // reserved property
                 continue;
 
             NSString* typeString = @(property_getAttributes(prop));
@@ -246,81 +251,99 @@
 }
 
 - (NSString*)JSONString {
+    return [self JSONString:0];
+}
+
+- (NSString*)JSONString:(JSONPrintingOptions)options {
     if (self == nil || [self isKindOfClass:NSNull.class])
         return @"null";
 
-    if ([self isKindOfClass:NSString.class])
-        return [NSString stringWithFormat:@"\"%@\"",
-                [(NSString*)self stringByReplacingOccurrencesOfString:@"\"" withString:@"\\\""]];
+    if ([self isKindOfClass:NSString.class]){
+        NSString* escapedString = [(NSString*)self stringByReplacingOccurrencesOfString:@"\\" withString:@"\\\\"];
+        escapedString = [escapedString stringByReplacingOccurrencesOfString:@"\"" withString:@"\\\""];
+        return [NSString stringWithFormat:@"\"%@\"",escapedString];
+    }
 
     if ([self isKindOfClass:NSArray.class])
-        return [self JSONStringFromArray];
+        return [self JSONStringFromArray:options];
 
-    if ([self isKindOfClass:[NSDictionary class]])
-        return [self JSONStringFromDictionary];
+    if ([self isKindOfClass:NSDictionary.class])
+        return [self JSONStringFromDictionary:options];
 
-    return [self JSONStringFromObject];
+    return [self JSONStringFromObject:options];
 }
 
-- (NSString*)JSONString:(Property*)property {
+- (NSString*)JSONString:(Property*)property options:(JSONPrintingOptions)options{
     if ([self isBoolean:property]) {
         return ((NSNumber*)self).boolValue ? @"true" : @"false";
     } else if ([self isKindOfClass:NSNumber.class]) {
         return ((NSNumber*)self).stringValue;
     }
 
-    return [self JSONString];
+    return [self JSONString:options];
 }
 
-- (NSString*)JSONStringFromArray {
+- (NSString*)JSONStringFromArray:(JSONPrintingOptions)options {
     NSMutableString* buffer = [NSMutableString string];
     [buffer appendString:@"["];
     for (id item in (NSArray*)self) {
         if (buffer.length > 1)
             [buffer appendString:@","];
-        [buffer appendString:[item JSONString]];
+        [buffer appendString:[item JSONString:options]];
     }
     [buffer appendString:@"]"];
     return buffer;
 }
 
-- (NSString*)JSONStringFromDictionary {
+- (NSString*)JSONStringFromDictionary:(JSONPrintingOptions)options {
     NSDictionary* dic = (NSDictionary*)self;
     NSMutableString* buffer = [NSMutableString string];
     [buffer appendString:@"{"];
     for (NSString* key in dic.allKeys) {
         NSString* propertyName = key;
+        id value = dic[propertyName];
+        if (value == nil) {
+            if((options & JSONPrintingOptionsKeepNull) != 0){
+                value = [NSNull new];
+            } else {
+                continue; // skip the null values
+            }
+        }
+
         if (buffer.length > 1)
             [buffer appendString:@","];
-        id value = dic[propertyName];
-        if (value == nil)
-            value = [NSNull new];
 
         if ([self conformsToProtocol:@protocol(JSONMapper)])
             propertyName = [((id<JSONMapper>)self) remapPropertyName:propertyName];
 
-        [buffer appendString:[NSString stringWithFormat:@"\"%@\": %@", propertyName, [value JSONString]]];
+        [buffer appendString:[NSString stringWithFormat:@"\"%@\": %@", propertyName, [value JSONString:options]]];
     }
 
     [buffer appendString:@"}"];
     return buffer;
 }
 
-- (NSString*)JSONStringFromObject {
+- (NSString*)JSONStringFromObject:(JSONPrintingOptions)options {
     NSMutableString* buffer = [NSMutableString string];
     [buffer appendString:@"{"];
     for (Property* property in [self properties]) {
+        id value = [self valueForKey:property.name];
+        if (value == nil) {
+            if((options & JSONPrintingOptionsKeepNull) != 0){
+                value = [NSNull new];
+            } else {
+                continue; // skip the null values
+            }
+        }
+
         if (buffer.length > 1)
             [buffer appendString:@","];
-        id value = [self valueForKey:property.name];
-        if (value == nil)
-            value = [NSNull new];
 
         NSString* propertyName = property.name;
         if ([self conformsToProtocol:@protocol(JSONMapper)])
             propertyName = [((id<JSONMapper>)self) remapPropertyName:propertyName];
 
-        [buffer appendString:[NSString stringWithFormat:@"\"%@\": %@", propertyName, [value JSONString:property]]];
+        [buffer appendString:[NSString stringWithFormat:@"\"%@\": %@", propertyName, [value JSONString:property options:options]]];
     }
     [buffer appendString:@"}"];
     return buffer;
