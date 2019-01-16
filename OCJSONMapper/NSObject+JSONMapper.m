@@ -258,6 +258,10 @@
     return [self JSONString:options level:@""];
 }
     
+#pragma mark - Static constants
+
+static NSString *const PaddingSymbol = @"  ";
+
 #pragma mark - Private helper methods
 
 - (NSString*)JSONString:(JSONPrintingOptions)options level:(NSString*)level{
@@ -291,7 +295,7 @@
 
 - (NSString*)JSONStringFromArray:(JSONPrintingOptions)options level:(NSString*)level {
     NSMutableString* buffer = [NSMutableString string];
-    NSString *extraPadding = [level stringByAppendingString:@"\t"];
+    NSString *extraPadding = [level stringByAppendingString:PaddingSymbol];
     [buffer appendString:@"["];
     for (id item in (NSArray*)self) {
         if (buffer.length > 1)
@@ -312,7 +316,7 @@
 - (NSString*)JSONStringFromDictionary:(JSONPrintingOptions)options  level:(NSString*)level {
     NSDictionary* dic = (NSDictionary*)self;
     NSMutableString* buffer = [NSMutableString string];
-    NSString *extraPadding = [level stringByAppendingString:@"\t"];
+    NSString *extraPadding = [level stringByAppendingString:PaddingSymbol];
     [buffer appendString:@"{"];
     for (NSString* key in dic.allKeys) {
         NSString* propertyName = key;
@@ -348,7 +352,7 @@
 
 - (NSString*)JSONStringFromObject:(JSONPrintingOptions)options level:(NSString*)level {
     NSMutableString* buffer = [NSMutableString string];
-    NSString *extraPadding = [level stringByAppendingString:@"\t"];
+    NSString *extraPadding = [level stringByAppendingString:PaddingSymbol];
     [buffer appendString:@"{"];
     for (Property* property in [self properties]) {
         id value = [self valueForKey:property.name];
