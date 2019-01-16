@@ -258,7 +258,7 @@
     return [self JSONString:options level:@""];
 }
     
-    // MARK: private methods
+#pragma mark - Private helper methods
 
 - (NSString*)JSONString:(JSONPrintingOptions)options level:(NSString*)level{
     if (self == nil || [self isKindOfClass:NSNull.class])
