@@ -255,6 +255,16 @@
 }
 
 - (NSString*)JSONString:(JSONPrintingOptions)options {
+    return [self JSONString:options level:@""];
+}
+    
+#pragma mark - Static constants
+
+static NSString *const PaddingSymbol = @"  ";
+
+#pragma mark - Private helper methods
+
+- (NSString*)JSONString:(JSONPrintingOptions)options level:(NSString*)level{
     if (self == nil || [self isKindOfClass:NSNull.class])
         return @"null";
 
@@ -265,39 +275,48 @@
     }
 
     if ([self isKindOfClass:NSArray.class])
-        return [self JSONStringFromArray:options];
+        return [self JSONStringFromArray:options level:level];
 
     if ([self isKindOfClass:NSDictionary.class])
-        return [self JSONStringFromDictionary:options];
+        return [self JSONStringFromDictionary:options level:level];
 
-    return [self JSONStringFromObject:options];
+    return [self JSONStringFromObject:options level:level];
 }
 
-- (NSString*)JSONString:(Property*)property options:(JSONPrintingOptions)options{
+- (NSString*)JSONString:(Property*)property options:(JSONPrintingOptions)options level:(NSString*)level {
     if ([self isBoolean:property]) {
         return ((NSNumber*)self).boolValue ? @"true" : @"false";
     } else if ([self isKindOfClass:NSNumber.class]) {
         return ((NSNumber*)self).stringValue;
     }
 
-    return [self JSONString:options];
+    return [self JSONString:options level:level];
 }
 
-- (NSString*)JSONStringFromArray:(JSONPrintingOptions)options {
+- (NSString*)JSONStringFromArray:(JSONPrintingOptions)options level:(NSString*)level {
     NSMutableString* buffer = [NSMutableString string];
+    NSString *extraPadding = [level stringByAppendingString:PaddingSymbol];
     [buffer appendString:@"["];
     for (id item in (NSArray*)self) {
         if (buffer.length > 1)
             [buffer appendString:@","];
-        [buffer appendString:[item JSONString:options]];
+        
+        if (options & JSONPrintingOptionsPretty) {
+            [buffer appendFormat:@"\r%@", extraPadding];
+        }
+        [buffer appendString:[item JSONString:options level:extraPadding]];
+    }
+    if (options & JSONPrintingOptionsPretty) {
+        [buffer appendFormat:@"\r%@", level];
     }
     [buffer appendString:@"]"];
     return buffer;
 }
 
-- (NSString*)JSONStringFromDictionary:(JSONPrintingOptions)options {
+- (NSString*)JSONStringFromDictionary:(JSONPrintingOptions)options  level:(NSString*)level {
     NSDictionary* dic = (NSDictionary*)self;
     NSMutableString* buffer = [NSMutableString string];
+    NSString *extraPadding = [level stringByAppendingString:PaddingSymbol];
     [buffer appendString:@"{"];
     for (NSString* key in dic.allKeys) {
         NSString* propertyName = key;
@@ -316,15 +335,24 @@
         if ([self conformsToProtocol:@protocol(JSONMapper)])
             propertyName = [((id<JSONMapper>)self) remapPropertyName:propertyName];
 
-        [buffer appendString:[NSString stringWithFormat:@"\"%@\": %@", propertyName, [value JSONString:options]]];
+        if (options & JSONPrintingOptionsPretty) {
+            [buffer appendFormat:@"\r%@", extraPadding];
+        }
+
+        NSString *jsonValue = [value JSONString:options level:extraPadding];
+        [buffer appendString:[NSString stringWithFormat: @"\"%@\": %@", propertyName, jsonValue]];
     }
 
+    if (options & JSONPrintingOptionsPretty) {
+        [buffer appendFormat:@"\r%@", level];
+    }
     [buffer appendString:@"}"];
     return buffer;
 }
 
-- (NSString*)JSONStringFromObject:(JSONPrintingOptions)options {
+- (NSString*)JSONStringFromObject:(JSONPrintingOptions)options level:(NSString*)level {
     NSMutableString* buffer = [NSMutableString string];
+    NSString *extraPadding = [level stringByAppendingString:PaddingSymbol];
     [buffer appendString:@"{"];
     for (Property* property in [self properties]) {
         id value = [self valueForKey:property.name];
@@ -342,8 +370,16 @@
         NSString* propertyName = property.name;
         if ([self conformsToProtocol:@protocol(JSONMapper)])
             propertyName = [((id<JSONMapper>)self) remapPropertyName:propertyName];
-
-        [buffer appendString:[NSString stringWithFormat:@"\"%@\": %@", propertyName, [value JSONString:property options:options]]];
+        
+        if (options & JSONPrintingOptionsPretty) {
+            [buffer appendFormat:@"\r%@", extraPadding];
+        }
+        NSString *jsonValue = [value JSONString:property options:options level:extraPadding];
+        [buffer appendString:[NSString stringWithFormat:@"\"%@\": %@", propertyName, jsonValue]];
+    }
+    
+    if (options & JSONPrintingOptionsPretty) {
+        [buffer appendFormat:@"\r%@", level];
     }
     [buffer appendString:@"}"];
     return buffer;

@@ -9,7 +9,8 @@
 #import <Foundation/Foundation.h>
 
 typedef NS_OPTIONS(NSUInteger, JSONPrintingOptions) {
-    JSONPrintingOptionsKeepNull = 1
+    JSONPrintingOptionsKeepNull = 1,
+    JSONPrintingOptionsPretty = 2
 };
 
 @interface NSObject (JSONMapper)
