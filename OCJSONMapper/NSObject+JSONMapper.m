@@ -274,6 +274,14 @@ static NSString *const PaddingSymbol = @"  ";
         return [NSString stringWithFormat:@"\"%@\"",escapedString];
     }
 
+    if (self == (void*)kCFBooleanFalse || self == (void*)kCFBooleanTrue){
+        return self == (void*)kCFBooleanTrue ? @"true" : @"false";
+    }
+
+    if ([self isKindOfClass:NSNumber.class]) {
+        return ((NSNumber*)self).stringValue;
+    }
+    
     if ([self isKindOfClass:NSArray.class])
         return [self JSONStringFromArray:options level:level];
 
@@ -355,7 +363,9 @@ static NSString *const PaddingSymbol = @"  ";
     NSString *extraPadding = [level stringByAppendingString:PaddingSymbol];
     [buffer appendString:@"{"];
     for (Property* property in [self properties]) {
+        NSLog(@"%@(%@)", self, property.name);
         id value = [self valueForKey:property.name];
+        NSLog(@"--");
         if (value == nil) {
             if((options & JSONPrintingOptionsKeepNull) != 0){
                 value = [NSNull new];
