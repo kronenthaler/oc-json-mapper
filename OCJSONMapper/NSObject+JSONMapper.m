@@ -363,9 +363,7 @@ static NSString *const PaddingSymbol = @"  ";
     NSString *extraPadding = [level stringByAppendingString:PaddingSymbol];
     [buffer appendString:@"{"];
     for (Property* property in [self properties]) {
-        NSLog(@"%@(%@)", self, property.name);
         id value = [self valueForKey:property.name];
-        NSLog(@"--");
         if (value == nil) {
             if((options & JSONPrintingOptionsKeepNull) != 0){
                 value = [NSNull new];
